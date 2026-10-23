@@ -1,0 +1,6 @@
+[
+  {"id":"beginner","title":"Beginner","subtitle":"100 nouns + 100 verbs","level":1,"files":["beginner_nouns.json","beginner_verbs.json"]},
+  {"id":"elementary","title":"Elementary","subtitle":"250 words: 100 nouns, 75 verbs, 75 adjectives","level":2,"files":["elementary_nouns.json","elementary_verbs.json","elementary_adjectives.json"]},
+  {"id":"intermediate","title":"Intermediate","subtitle":"500 words: nouns, verbs, adjectives + 120 small words","level":3,"files":["intermediate_nouns.json","intermediate_verbs.json","intermediate_adjectives.json","intermediate_small_words.json"]},
+  {"id":"advanced","title":"Advanced","subtitle":"1000 words: 409 nouns, 250 verbs, 200 adjectives, 141 small words","level":4,"files":["advanced_nouns_1.json","advanced_nouns_2.json","advanced_verbs_1.json","advanced_verbs_2.json","advanced_adjectives.json","advanced_small_words.json"]}
+]
