@@ -1,10 +1,12 @@
 import AVFoundation
 
-/// Speaks Danish with the best da-DK voice installed on the device.
+/// Speaks Danish: a recorded clip for words when one is bundled (Audio/<word id>.mp3, made with
+/// scripts/generate_audio.swift), otherwise the best da-DK voice installed on the device.
 final class SpeechService: NSObject {
     static let shared = SpeechService()
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var player: AVAudioPlayer?
 
     /// Premium or enhanced voices sound much better than the default compact one, if the user has downloaded them
     /// (Settings › Accessibility › Spoken Content › Voices › Danish).
@@ -18,15 +20,35 @@ final class SpeechService: NSObject {
         synthesizer.delegate = self
     }
 
-    func speak(_ text: String) {
-        activateAudioSession()
-        if synthesizer.isSpeaking {
-            synthesizer.stopSpeaking(at: .immediate)
+    func speak(_ word: Word) {
+        guard let url = Bundle.main.url(forResource: word.id, withExtension: "mp3"),
+              let player = try? AVAudioPlayer(contentsOf: url)
+        else {
+            speak(word.displayDanish)
+            return
         }
+        stop()
+        activateAudioSession()
+        player.delegate = self
+        self.player = player
+        player.play()
+    }
+
+    func speak(_ text: String) {
+        stop()
+        activateAudioSession()
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = voice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.85
         synthesizer.speak(utterance)
+    }
+
+    private func stop() {
+        player?.stop()
+        player = nil
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
     }
 
     /// The default session category is silenced by the Ring/Silent switch, so on a real iPhone
@@ -43,18 +65,24 @@ final class SpeechService: NSObject {
     }
 
     /// Hand the audio back to other apps (e.g. un-duck their music) once we are done talking.
-    nonisolated private func deactivateAudioSessionIfIdle(_ synthesizer: AVSpeechSynthesizer) {
-        guard !synthesizer.isSpeaking else { return }
+    private func deactivateAudioSessionIfIdle() {
+        guard !synthesizer.isSpeaking, player?.isPlaying != true else { return }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
 
 extension SpeechService: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        deactivateAudioSessionIfIdle(synthesizer)
+        Task { @MainActor in self.deactivateAudioSessionIfIdle() }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        deactivateAudioSessionIfIdle(synthesizer)
+        Task { @MainActor in self.deactivateAudioSessionIfIdle() }
+    }
+}
+
+extension SpeechService: AVAudioPlayerDelegate {
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in self.deactivateAudioSessionIfIdle() }
     }
 }

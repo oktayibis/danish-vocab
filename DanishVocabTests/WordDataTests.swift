@@ -71,6 +71,15 @@ struct WordDataTests {
         }
     }
 
+    @Test func recordedAudioBelongsToWords() {
+        let bundle = Bundle(for: WordRepository.self)
+        let ids = Set(repository.allWords.map(\.id))
+        let clips = (bundle.urls(forResourcesWithExtension: "mp3", subdirectory: nil) ?? [])
+            .map { $0.deletingPathExtension().lastPathComponent }
+        let orphans = clips.filter { !ids.contains($0) }
+        #expect(orphans.isEmpty, "Audio clips without a matching word: \(orphans)")
+    }
+
     @Test func badgeAndCategoryIconsExist() {
         for badge in Badges.all {
             #expect(UIImage(systemName: badge.icon) != nil, "Badge \(badge.id): unknown SF Symbol \(badge.icon)")

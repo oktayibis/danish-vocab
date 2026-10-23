@@ -76,12 +76,12 @@ struct QuizView: View {
                 Text("Pick the right picture").font(.headline).foregroundStyle(.secondary)
                 HStack(spacing: 12) {
                     Text(question.answer.displayDanish).font(.system(size: 40, weight: .bold)).minimumScaleFactor(0.5)
-                    SpeakButton(text: question.answer.displayDanish)
+                    SpeakButton(word: question.answer)
                 }
             case .listenToPicture:
                 Text("Listen and pick the picture").font(.headline).foregroundStyle(.secondary)
                 Button {
-                    SpeechService.shared.speak(question.answer.displayDanish)
+                    SpeechService.shared.speak(question.answer)
                 } label: {
                     Image(systemName: "speaker.wave.3.fill")
                         .font(.system(size: 56))
@@ -94,7 +94,7 @@ struct QuizView: View {
                 }
             }
         }
-        .onAppear { if question.mode == .listenToPicture { SpeechService.shared.speak(question.answer.displayDanish) } }
+        .onAppear { if question.mode == .listenToPicture { SpeechService.shared.speak(question.answer) } }
         .id(question.id)
     }
 
@@ -199,7 +199,7 @@ struct QuizView: View {
             combo = 0
         }
         if question.mode != .listenToPicture {
-            SpeechService.shared.speak(question.answer.displayDanish)
+            SpeechService.shared.speak(question.answer)
         }
     }
 

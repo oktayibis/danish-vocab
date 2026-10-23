@@ -68,7 +68,7 @@ struct FlashcardView: View {
             WordVisualView(visual: word.visual, size: 90, tint: word.tint)
             HStack(spacing: 12) {
                 Text(word.displayDanish).font(.largeTitle.bold()).minimumScaleFactor(0.6)
-                SpeakButton(text: word.displayDanish)
+                SpeakButton(word: word)
             }
             Text(word.english).font(.title3).foregroundStyle(.secondary)
             if let hint = word.grammarHint {
@@ -98,7 +98,7 @@ struct FlashcardView: View {
     private func flip() {
         guard !isFlipped else { return }
         isFlipped = true
-        SpeechService.shared.speak(word.displayDanish)
+        SpeechService.shared.speak(word)
     }
 
     private func answer(knewIt: Bool) {

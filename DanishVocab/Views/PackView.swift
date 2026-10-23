@@ -138,7 +138,7 @@ struct WordDetailView: View {
                 .padding(.top, 24)
             HStack(spacing: 12) {
                 Text(word.displayDanish).font(.largeTitle.bold())
-                SpeakButton(text: word.displayDanish)
+                SpeakButton(word: word)
             }
             Text(word.english).font(.title3).foregroundStyle(.secondary)
             if let hint = word.grammarHint {
@@ -160,6 +160,6 @@ struct WordDetailView: View {
             Spacer()
         }
         .padding()
-        .onAppear { SpeechService.shared.speak(word.displayDanish) }
+        .onAppear { SpeechService.shared.speak(word) }
     }
 }

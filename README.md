@@ -23,7 +23,7 @@ Every word has an emoji, an SF Symbol or a small hand-drawn picture to help it s
 - **Spaced repetition:** Leitner boxes bring back the words you get wrong sooner.
 - **Gamification:** XP and levels, combo bonuses, a daily streak and badges.
 - **Dictionary:** search Danish ⇄ English. It finds inflected forms (*spiste* → *at spise*) and works without æ/ø/å (*aeble*, *kobe*).
-- **Pronunciation:** uses the built-in Danish voice (`da-DK`) and works offline. It prefers an Enhanced or Premium voice when one is installed.
+- **Pronunciation:** every word has a recorded clip by a native Danish voice ("Søren"), generated with [ElevenLabs](https://elevenlabs.io) and bundled in the app, so it works offline. Example sentences use the built-in Danish voice (`da-DK`).
 
 ## Tech stack
 
@@ -74,8 +74,10 @@ DanishVocab/
   Models/      Word, WordPack, SwiftData progress models
   Services/    Spaced repetition, gamification, quiz builder, dictionary search, speech
   Views/       Home, pack, flashcards, quiz, dictionary, badges, profile
+  Audio/       One mp3 per word (<word id>.mp3)
 DanishVocabTests/
-scripts/make_icon.swift   Draws the app icon with CoreGraphics
+scripts/make_icon.swift        Draws the app icon with CoreGraphics
+scripts/generate_audio.swift   Records the word clips with the ElevenLabs API
 project.yml               XcodeGen project definition
 ```
 
@@ -87,6 +89,18 @@ Packs are data only. To add one, add a JSON file to `DanishVocab/Data/` and list
 {"id":"beg.n.001","danish":"æble","english":"apple","partOfSpeech":"noun","article":"et","plural":"æbler",
  "category":"food","visual":{"type":"emoji","value":"🍎"},"exampleDa":"Jeg spiser et æble.","exampleEn":"I am eating an apple."}
 ```
+
+### Recording pronunciations
+
+The app plays `Audio/<word id>.mp3` when it exists and falls back to the device voice otherwise. To record clips for new words, set `ELEVENLABS_API_KEY` (or put it in `~/.config/elevenlabs-mcp/.env`) and run:
+
+```bash
+swift scripts/generate_audio.swift --list-voices                    # pick a voice
+swift scripts/generate_audio.swift --dry-run                        # count characters
+ELEVENLABS_VOICE_ID=<voice id> swift scripts/generate_audio.swift   # record missing words
+```
+
+Existing clips are skipped. The default model, `eleven_turbo_v2_5`, is forced to Danish (`language_code: da`), so short words like *to* (two) and *fire* (four) aren't read as English. Recording all 1950 words used about 3,000 credits.
 
 ## How this project was built
 

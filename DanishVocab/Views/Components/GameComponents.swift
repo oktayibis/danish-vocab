@@ -58,13 +58,23 @@ struct ProgressRing: View {
 }
 
 struct SpeakButton: View {
-    let text: String
-    var size: Font = .title2
+    private let speak: () -> Void
+    private let size: Font
+
+    /// Speaks a word, using its recorded clip when there is one.
+    init(word: Word, size: Font = .title2) {
+        self.speak = { SpeechService.shared.speak(word) }
+        self.size = size
+    }
+
+    /// Speaks any text, such as an example sentence, with the device voice.
+    init(text: String, size: Font = .title2) {
+        self.speak = { SpeechService.shared.speak(text) }
+        self.size = size
+    }
 
     var body: some View {
-        Button {
-            SpeechService.shared.speak(text)
-        } label: {
+        Button(action: speak) {
             Image(systemName: "speaker.wave.2.fill")
                 .font(size)
                 .padding(10)
