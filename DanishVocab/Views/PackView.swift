@@ -151,7 +151,7 @@ struct WordDetailView: View {
             VStack(spacing: 4) {
                 HStack {
                     Text(word.exampleDa).font(.body.italic())
-                    SpeakButton(text: word.exampleDa, size: .body)
+                    SpeakButton(exampleOf: word, size: .body)
                 }
                 Text(word.exampleEn).font(.callout).foregroundStyle(.secondary)
             }

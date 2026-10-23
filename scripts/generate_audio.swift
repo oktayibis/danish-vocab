@@ -1,15 +1,21 @@
 import Foundation
 
-// Generates a recorded pronunciation for every word with the ElevenLabs API and saves it as
-// DanishVocab/Audio/<word id>.mp3. The app plays these clips and falls back to the device voice
-// for words without one. Existing files are skipped, so the script can be stopped and re-run.
+// Records pronunciations with the ElevenLabs API and saves them in DanishVocab/Audio:
+//   <word id>.mp3      the word itself ("et æble", "at spise")
+//   <word id>-ex.mp3   its example sentence (with --examples)
+// The app plays these clips and falls back to the device voice when one is missing.
+//
+// scripts/audio_manifest.json remembers which text each clip was made from, so a clip is re-recorded
+// when its word or sentence changes. Up-to-date clips are skipped, so the script can be
+// stopped and re-run at any time.
 //
 // Run from the repository root:
 //   swift scripts/generate_audio.swift --list-voices
-//   swift scripts/generate_audio.swift --dry-run
-//   swift scripts/generate_audio.swift --limit 10            # try a few words first
+//   swift scripts/generate_audio.swift --dry-run [--examples]
+//   swift scripts/generate_audio.swift --limit 10            # try a few first
 //   swift scripts/generate_audio.swift --pack beginner
-//   swift scripts/generate_audio.swift                       # everything
+//   swift scripts/generate_audio.swift                       # all words
+//   swift scripts/generate_audio.swift --examples            # all example sentences
 //
 // Environment:
 //   ELEVENLABS_API_KEY   required, or ELEVENLABS_API_KEY=... in ~/.config/elevenlabs-mcp/.env
@@ -27,11 +33,18 @@ struct Entry: Decodable {
     let article: String?
     let plural: String?
     let partOfSpeech: String
+    let exampleDa: String
 
     /// Same rule as Word.displayDanish in the app: "et æble", "kød", "at spise".
-    var spokenText: String {
+    var displayDanish: String {
         if partOfSpeech == "noun", let article, plural != nil { "\(article) \(danish)" } else { danish }
     }
+}
+
+/// One clip to record.
+struct Clip {
+    let name: String
+    let text: String
 }
 
 let arguments = CommandLine.arguments.dropFirst()
@@ -54,6 +67,7 @@ func loadAPIKey() -> String? {
 }
 let dataDir = URL(fileURLWithPath: "DanishVocab/Data")
 let audioDir = URL(fileURLWithPath: "DanishVocab/Audio")
+let manifestURL = URL(fileURLWithPath: "scripts/audio_manifest.json")
 
 func fail(_ message: String) -> Never {
     FileHandle.standardError.write(Data("error: \(message)\n".utf8))
@@ -79,7 +93,7 @@ if arguments.contains("--list-voices") {
     exit(0)
 }
 
-// MARK: - Words
+// MARK: - What to record
 
 guard FileManager.default.fileExists(atPath: dataDir.path) else { fail("run this from the repository root") }
 let packs = try JSONDecoder().decode([Pack].self, from: Data(contentsOf: dataDir.appendingPathComponent("packs.json")))
@@ -93,24 +107,43 @@ for pack in selectedPacks {
     }
 }
 
-try FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
-func outputURL(_ entry: Entry) -> URL { audioDir.appendingPathComponent("\(entry.id).mp3") }
+let recordExamples = arguments.contains("--examples")
+let clips = entries.map { entry in
+    recordExamples ? Clip(name: "\(entry.id)-ex", text: entry.exampleDa) : Clip(name: entry.id, text: entry.displayDanish)
+}
 
-let missing = entries.filter { !FileManager.default.fileExists(atPath: outputURL($0).path) }
+try FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
+func fileURL(_ clip: Clip) -> URL { audioDir.appendingPathComponent("\(clip.name).mp3") }
+func exists(_ clip: Clip) -> Bool { FileManager.default.fileExists(atPath: fileURL(clip).path) }
+
+/// clip name → the text it was recorded from.
+var manifest = (try? JSONDecoder().decode([String: String].self, from: Data(contentsOf: manifestURL))) ?? [:]
+func saveManifest() throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+    try encoder.encode(manifest).write(to: manifestURL)
+}
+
+// Clips recorded before the manifest existed are trusted as they are.
+for clip in clips where exists(clip) && manifest[clip.name] == nil { manifest[clip.name] = clip.text }
+try saveManifest()
+
+let missing = clips.filter { !exists($0) || manifest[$0.name] != $0.text }
 var todo = missing
 if let limit = option("--limit").flatMap(Int.init) { todo = Array(todo.prefix(limit)) }
 
-let characters = todo.reduce(0) { $0 + $1.spokenText.count }
-print("\(entries.count) words selected, \(entries.count - missing.count) already recorded, \(todo.count) to generate (\(characters) characters).")
+let characters = todo.reduce(0) { $0 + $1.text.count }
+let kind = recordExamples ? "example sentences" : "words"
+print("\(clips.count) \(kind) selected, \(clips.count - missing.count) up to date, \(todo.count) to record (\(characters) characters).")
 if arguments.contains("--dry-run") || todo.isEmpty { exit(0) }
 
-// MARK: - Generate
+// MARK: - Record
 
 guard let apiKey = loadAPIKey() else { fail("set ELEVENLABS_API_KEY") }
 guard let voiceId = environment["ELEVENLABS_VOICE_ID"] else { fail("set ELEVENLABS_VOICE_ID (see --list-voices)") }
 let model = environment["ELEVENLABS_MODEL"] ?? "eleven_turbo_v2_5"
 
-func synthesize(_ entry: Entry) async throws {
+func synthesize(_ clip: Clip) async throws {
     var components = URLComponents(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)")!
     components.queryItems = [URLQueryItem(name: "output_format", value: "mp3_22050_32")]
     var request = URLRequest(url: components.url!)
@@ -120,7 +153,7 @@ func synthesize(_ entry: Entry) async throws {
     request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
 
     var body: [String: Any] = [
-        "text": entry.spokenText,
+        "text": clip.text,
         "model_id": model,
         "voice_settings": ["stability": 0.6, "similarity_boost": 0.75],
     ]
@@ -131,7 +164,7 @@ func synthesize(_ entry: Entry) async throws {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if status == 200 {
-            try data.write(to: outputURL(entry))
+            try data.write(to: fileURL(clip))
             return
         }
         // Rate limited, busy, or the library voice is still being added on first use: back off and retry.
@@ -140,7 +173,7 @@ func synthesize(_ entry: Entry) async throws {
             continue
         }
         throw NSError(domain: "ElevenLabs", code: status,
-                      userInfo: [NSLocalizedDescriptionKey: "\(entry.id) (\(entry.spokenText)): HTTP \(status) \(String(decoding: data, as: UTF8.self))"])
+                      userInfo: [NSLocalizedDescriptionKey: "\(clip.name) (\(clip.text)): HTTP \(status) \(String(decoding: data, as: UTF8.self))"])
     }
 }
 
@@ -148,31 +181,36 @@ func synthesize(_ entry: Entry) async throws {
 let concurrency = 3
 var done = 0
 var failures: [String] = []
-try await withThrowingTaskGroup(of: (String, Error?).self) { group in
+try await withThrowingTaskGroup(of: (Clip, Error?).self) { group in
     var iterator = todo.makeIterator()
     func addNext() {
-        guard let entry = iterator.next() else { return }
+        guard let clip = iterator.next() else { return }
         group.addTask {
-            do { try await synthesize(entry); return (entry.id, nil) } catch { return (entry.id, error) }
+            do { try await synthesize(clip); return (clip, nil) } catch { return (clip, error) }
         }
     }
     for _ in 0..<concurrency { addNext() }
-    while let (id, error) = try await group.next() {
+    while let (clip, error) = try await group.next() {
         done += 1
         if let error {
             failures.append(error.localizedDescription)
             // A bad key or exhausted quota will fail every request, so stop early.
             if (error as NSError).code == 401 || failures.count >= 5 { group.cancelAll(); break }
-        } else if done % 25 == 0 || done == todo.count {
-            print("\(done)/\(todo.count) – last: \(id)")
+        } else {
+            manifest[clip.name] = clip.text
+            if done % 25 == 0 || done == todo.count {
+                try saveManifest()
+                print("\(done)/\(todo.count) – last: \(clip.name)")
+            }
         }
         addNext()
     }
 }
+try saveManifest()
 
 if failures.isEmpty {
     print("Done. Rebuild the app to bundle the new clips.")
 } else {
     failures.forEach { print("failed: \($0)") }
-    fail("\(failures.count) word(s) failed; run the script again to retry the rest.")
+    fail("\(failures.count) clip(s) failed; run the script again to retry the rest.")
 }

@@ -18,7 +18,7 @@
   {"id":"adv.s.017","danish":"halvanden","english":"one and a half","partOfSpeech":"number","category":"numbers","visual":{"type":"emoji","value":"🌗"},"exampleDa":"Turen tager halvanden time.","exampleEn":"The trip takes an hour and a half."},
 
   {"id":"adv.s.018","danish":"mig","english":"me","partOfSpeech":"pronoun","category":"pronouns","note":"object form of jeg","visual":{"type":"emoji","value":"🤳"},"exampleDa":"Ring til mig i morgen.","exampleEn":"Call me tomorrow."},
-  {"id":"adv.s.019","danish":"dig","english":"you (object)","partOfSpeech":"pronoun","category":"pronouns","note":"object form of du","visual":{"type":"emoji","value":"👉"},"exampleDa":"Jeg elsker dig.","exampleEn":"I love you."},
+  {"id":"adv.s.019","danish":"dig","english":"you (object)","partOfSpeech":"pronoun","category":"pronouns","note":"object form of du","visual":{"type":"emoji","value":"👉"},"exampleDa":"Jeg ringer til dig i aften.","exampleEn":"I'll call you tonight."},
   {"id":"adv.s.020","danish":"ham","english":"him","partOfSpeech":"pronoun","category":"pronouns","note":"object form of han","visual":{"type":"emoji","value":"👦"},"exampleDa":"Kender du ham?","exampleEn":"Do you know him?"},
   {"id":"adv.s.021","danish":"hende","english":"her","partOfSpeech":"pronoun","category":"pronouns","note":"object form of hun","visual":{"type":"emoji","value":"👧"},"exampleDa":"Jeg giver hende en blomst.","exampleEn":"I give her a flower."},
   {"id":"adv.s.022","danish":"os","english":"us","partOfSpeech":"pronoun","category":"pronouns","note":"object form of vi","visual":{"type":"emoji","value":"🫂"},"exampleDa":"Kom og besøg os!","exampleEn":"Come and visit us!"},

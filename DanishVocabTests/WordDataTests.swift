@@ -71,11 +71,22 @@ struct WordDataTests {
         }
     }
 
+    @Test func everyWordHasItsOwnExampleSentence() {
+        for word in repository.allWords {
+            #expect(!word.exampleDa.isEmpty && !word.exampleEn.isEmpty, "\(word.id) needs an example in Danish and English")
+        }
+        let sentences = repository.allWords.map { $0.exampleDa.lowercased() }
+        let duplicates = Dictionary(grouping: sentences, by: { $0 }).filter { $0.value.count > 1 }.keys.sorted()
+        #expect(duplicates.isEmpty, "Example sentences used by more than one word: \(duplicates)")
+    }
+
     @Test func recordedAudioBelongsToWords() {
         let bundle = Bundle(for: WordRepository.self)
         let ids = Set(repository.allWords.map(\.id))
+        // Word clips are <id>.mp3, example sentence clips <id>-ex.mp3.
         let clips = (bundle.urls(forResourcesWithExtension: "mp3", subdirectory: nil) ?? [])
             .map { $0.deletingPathExtension().lastPathComponent }
+            .map { $0.hasSuffix("-ex") ? String($0.dropLast(3)) : $0 }
         let orphans = clips.filter { !ids.contains($0) }
         #expect(orphans.isEmpty, "Audio clips without a matching word: \(orphans)")
     }

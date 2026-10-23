@@ -10,7 +10,7 @@
   {"id":"ele.n.009","danish":"appelsin","english":"orange","partOfSpeech":"noun","article":"en","plural":"appelsiner","category":"food","visual":{"type":"emoji","value":"🍊"},"exampleDa":"Jeg presser en appelsin.","exampleEn":"I am squeezing an orange."},
   {"id":"ele.n.010","danish":"sukker","english":"sugar","partOfSpeech":"noun","article":"et","category":"food","visual":{"type":"emoji","value":"🍬"},"exampleDa":"Vil du have sukker i kaffen?","exampleEn":"Do you want sugar in your coffee?"},
   {"id":"ele.n.011","danish":"is","english":"ice cream","partOfSpeech":"noun","article":"en","plural":"is","category":"food","visual":{"type":"emoji","value":"🍦"},"exampleDa":"Børnene spiser is på stranden.","exampleEn":"The children are eating ice cream on the beach."},
-  {"id":"ele.n.012","danish":"vin","english":"wine","partOfSpeech":"noun","article":"en","plural":"vine","category":"food","visual":{"type":"emoji","value":"🍷"},"exampleDa":"Et glas rødvin, tak.","exampleEn":"A glass of red wine, please."},
+  {"id":"ele.n.012","danish":"vin","english":"wine","partOfSpeech":"noun","article":"en","plural":"vine","category":"food","visual":{"type":"emoji","value":"🍷"},"exampleDa":"Vil du have et glas vin?","exampleEn":"Would you like a glass of wine?"},
   {"id":"ele.n.013","danish":"morgenmad","english":"breakfast","partOfSpeech":"noun","article":"en","category":"food","visual":{"type":"emoji","value":"🥐"},"exampleDa":"Jeg spiser morgenmad klokken syv.","exampleEn":"I eat breakfast at seven."},
   {"id":"ele.n.014","danish":"aftensmad","english":"dinner","partOfSpeech":"noun","article":"en","category":"food","visual":{"type":"emoji","value":"🍝"},"exampleDa":"Hvad skal vi have til aftensmad?","exampleEn":"What are we having for dinner?"},
 
@@ -66,7 +66,7 @@
   {"id":"ele.n.060","danish":"sø","english":"lake","partOfSpeech":"noun","article":"en","plural":"søer","category":"nature","visual":{"type":"emoji","value":"🏞️"},"exampleDa":"Vi svømmer i søen.","exampleEn":"We swim in the lake."},
   {"id":"ele.n.061","danish":"bjerg","english":"mountain","partOfSpeech":"noun","article":"et","plural":"bjerge","category":"nature","visual":{"type":"emoji","value":"⛰️"},"exampleDa":"Der er ingen bjerge i Danmark.","exampleEn":"There are no mountains in Denmark."},
   {"id":"ele.n.062","danish":"ø","english":"island","partOfSpeech":"noun","article":"en","plural":"øer","category":"nature","visual":{"type":"emoji","value":"🏝️"},"exampleDa":"Danmark har mange øer.","exampleEn":"Denmark has many islands."},
-  {"id":"ele.n.063","danish":"græs","english":"grass","partOfSpeech":"noun","article":"et","category":"nature","visual":{"type":"emoji","value":"🌿"},"exampleDa":"Græsset er grønt.","exampleEn":"The grass is green."},
+  {"id":"ele.n.063","danish":"græs","english":"grass","partOfSpeech":"noun","article":"et","category":"nature","visual":{"type":"emoji","value":"🌿"},"exampleDa":"Køerne spiser græs på marken.","exampleEn":"The cows eat grass in the field."},
   {"id":"ele.n.064","danish":"blad","english":"leaf","partOfSpeech":"noun","article":"et","plural":"blade","category":"nature","visual":{"type":"emoji","value":"🍂"},"exampleDa":"Bladene falder om efteråret.","exampleEn":"The leaves fall in autumn."},
 
   {"id":"ele.n.065","danish":"sommer","english":"summer","partOfSpeech":"noun","article":"en","plural":"somre","category":"time","visual":{"type":"emoji","value":"🌞"},"exampleDa":"Om sommeren er det lyst længe.","exampleEn":"In summer it stays light for a long time."},
@@ -89,7 +89,7 @@
   {"id":"ele.n.081","danish":"hotel","english":"hotel","partOfSpeech":"noun","article":"et","plural":"hoteller","category":"places","visual":{"type":"emoji","value":"🏨"},"exampleDa":"Hotellet ligger ved havet.","exampleEn":"The hotel is by the sea."},
   {"id":"ele.n.082","danish":"land","english":"country","partOfSpeech":"noun","article":"et","plural":"lande","category":"places","visual":{"type":"emoji","value":"🌍"},"exampleDa":"Danmark er et lille land.","exampleEn":"Denmark is a small country."},
   {"id":"ele.n.083","danish":"vej","english":"road","partOfSpeech":"noun","article":"en","plural":"veje","category":"places","visual":{"type":"emoji","value":"🛣️"},"exampleDa":"Vejen er lang.","exampleEn":"The road is long."},
-  {"id":"ele.n.084","danish":"bro","english":"bridge","partOfSpeech":"noun","article":"en","plural":"broer","category":"places","visual":{"type":"emoji","value":"🌉"},"exampleDa":"Storebæltsbroen er meget lang.","exampleEn":"The Great Belt Bridge is very long."},
+  {"id":"ele.n.084","danish":"bro","english":"bridge","partOfSpeech":"noun","article":"en","plural":"broer","category":"places","visual":{"type":"emoji","value":"🌉"},"exampleDa":"Vi kører over broen til Sverige.","exampleEn":"We drive over the bridge to Sweden."},
   {"id":"ele.n.085","danish":"museum","english":"museum","partOfSpeech":"noun","article":"et","plural":"museer","category":"places","visual":{"type":"emoji","value":"🏛️"},"exampleDa":"Museet er gratis i dag.","exampleEn":"The museum is free today."},
   {"id":"ele.n.086","danish":"slot","english":"castle","partOfSpeech":"noun","article":"et","plural":"slotte","category":"places","visual":{"type":"emoji","value":"🏰"},"exampleDa":"Kronborg er et berømt slot.","exampleEn":"Kronborg is a famous castle."},
 
@@ -106,6 +106,6 @@
   {"id":"ele.n.096","danish":"sprog","english":"language","partOfSpeech":"noun","article":"et","plural":"sprog","category":"things","visual":{"type":"emoji","value":"🗣️"},"exampleDa":"Dansk er et svært sprog.","exampleEn":"Danish is a difficult language."},
   {"id":"ele.n.097","danish":"spørgsmål","english":"question","partOfSpeech":"noun","article":"et","plural":"spørgsmål","category":"things","visual":{"type":"emoji","value":"❓"},"exampleDa":"Har du et spørgsmål?","exampleEn":"Do you have a question?"},
   {"id":"ele.n.098","danish":"navn","english":"name","partOfSpeech":"noun","article":"et","plural":"navne","category":"things","visual":{"type":"emoji","value":"🏷️"},"exampleDa":"Hvad er dit navn?","exampleEn":"What is your name?"},
-  {"id":"ele.n.099","danish":"farve","english":"colour","partOfSpeech":"noun","article":"en","plural":"farver","category":"things","visual":{"type":"emoji","value":"🎨"},"exampleDa":"Hvad er din yndlingsfarve?","exampleEn":"What is your favourite colour?"},
+  {"id":"ele.n.099","danish":"farve","english":"colour","partOfSpeech":"noun","article":"en","plural":"farver","category":"things","visual":{"type":"emoji","value":"🎨"},"exampleDa":"Hvilken farve har din bil?","exampleEn":"What colour is your car?"},
   {"id":"ele.n.100","danish":"hygge","english":"cosiness, hygge","partOfSpeech":"noun","article":"en","category":"things","visual":{"type":"emoji","value":"🫖"},"exampleDa":"Hygge er meget dansk.","exampleEn":"Hygge is very Danish."}
 ]

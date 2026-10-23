@@ -67,7 +67,13 @@ struct SpeakButton: View {
         self.size = size
     }
 
-    /// Speaks any text, such as an example sentence, with the device voice.
+    /// Reads a word's example sentence, using its recorded clip when there is one.
+    init(exampleOf word: Word, size: Font = .title2) {
+        self.speak = { SpeechService.shared.speakExample(of: word) }
+        self.size = size
+    }
+
+    /// Speaks any text with the device voice.
     init(text: String, size: Font = .title2) {
         self.speak = { SpeechService.shared.speak(text) }
         self.size = size

@@ -75,7 +75,10 @@ struct FlashcardView: View {
                 Text(hint).font(.callout).padding(.horizontal, 12).padding(.vertical, 6).background(.quaternary, in: Capsule())
             }
             VStack(spacing: 4) {
-                Text(word.exampleDa).font(.body.italic())
+                HStack {
+                    Text(word.exampleDa).font(.body.italic())
+                    SpeakButton(exampleOf: word, size: .body)
+                }
                 Text(word.exampleEn).font(.callout).foregroundStyle(.secondary)
             }
             .multilineTextAlignment(.center)
