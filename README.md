@@ -23,6 +23,7 @@ Every word has an emoji, an SF Symbol or a small hand-drawn picture to help it s
 - **Spaced repetition:** Leitner boxes bring back the words you get wrong sooner.
 - **Gamification:** XP and levels, combo bonuses, a daily streak and badges.
 - **Dictionary of ~25,000 words:** the 1950 learning words plus ~23,000 more from Wiktionary. Each has its English meanings, en/et, inflected forms, pronunciation (IPA where available) and synonyms/antonyms. Search works both ways (Danish ⇄ English), finds inflected forms (*spiste* → *at spise*) and works without æ/ø/å (*aeble*, *kobe*).
+- **Sentence pool of ~21,800 sentences** (data ready, screens to come): 360 practical sentences for 12 everyday situations (café, doctor, Rejsekort, kommune, …), each marked as something you say or hear, plus one example sentence for every dictionary word. Every sentence is linked to the words it contains, so a word can list all the sentences it appears in.
 - **Pronunciation:** every word and every example sentence is recorded by a native Danish voice ("Søren"), generated with [ElevenLabs](https://elevenlabs.io). The recordings are bundled in the app, so it works offline.
 
 ## Tech stack
@@ -79,6 +80,7 @@ DanishVocabTests/
 scripts/make_icon.swift        Draws the app icon with CoreGraphics
 scripts/generate_audio.swift   Records the word clips with the ElevenLabs API
 scripts/import_dictionary.swift  Builds Data/dictionary.json from Wiktionary
+scripts/build_sentences.swift    Builds Data/sentences.json from scripts/sentences/
 project.yml               XcodeGen project definition
 ```
 
@@ -112,6 +114,14 @@ ELEVENLABS_VOICE_ID=<voice id> swift scripts/generate_audio.swift --examples   #
 curl -LO https://kaikki.org/dictionary/Danish/kaikki.org-dictionary-Danish.jsonl
 curl -LO https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/da/da_50k.txt
 swift -O scripts/import_dictionary.swift kaikki.org-dictionary-Danish.jsonl da_50k.txt
+```
+
+### Rebuilding the sentence pool
+
+`scripts/sentences/situations.json` holds the situation sentences, each with the words it uses; `scripts/sentences/words.json` holds one example sentence per dictionary word. The situation sentences and the sentences for the ~5,000 most frequent words were written with Claude Sonnet, the rest with Claude Haiku. Sentences that only describe a slur or vulgar word were left out. After editing either file, rebuild `DanishVocab/Data/sentences.json` (run after `import_dictionary.swift`, since it links sentences to dictionary entries):
+
+```bash
+swift -O scripts/build_sentences.swift
 ```
 
 ## How this project was built
