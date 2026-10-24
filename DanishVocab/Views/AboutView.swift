@@ -39,12 +39,22 @@ struct AboutView: View {
                 ForEach(Credit.all) { credit in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(credit.title).font(.headline)
-                        Text(credit.detail).font(.callout).foregroundStyle(.secondary)
-                        if let url = credit.url {
-                            Link(credit.license, destination: url).font(.caption)
-                        } else {
-                            Text(credit.license).font(.caption).foregroundStyle(.tint)
+                        Text(credit.detail).font(.callout)
+                        Text("By \(credit.author)").font(.caption).foregroundStyle(.secondary)
+                        if let changes = credit.changes {
+                            Text("Changes: \(changes)").font(.caption).foregroundStyle(.secondary)
                         }
+                        HStack(spacing: 16) {
+                            if let source = credit.source { Link("Source", destination: source) }
+                            if let licenseURL = credit.licenseURL {
+                                Link(credit.license, destination: licenseURL)
+                            } else {
+                                Text(credit.license).foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.caption)
+                        // Two links in one row: keep each tappable on its own instead of the whole row.
+                        .buttonStyle(.borderless)
                     }
                     .padding(.vertical, 2)
                 }
@@ -88,40 +98,62 @@ struct Release: Identifiable {
     ]
 }
 
-/// Where a part of the app's content comes from, and its licence.
+/// Where a part of the app's content comes from: who made it, its licence, and what we changed.
+/// CC BY-SA asks for the author, a link to the source, a link to the licence and a note of any changes.
+/// Keep this in step with ATTRIBUTION.md.
 struct Credit: Identifiable {
     let title: String
     let detail: String
+    let author: String
+    let source: URL?
     let license: String
-    let url: URL?
+    let licenseURL: URL?
+    var changes: String? = nil
 
     var id: String { title }
 
+    private static let ccBySA = URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")
+    private static let mit = URL(string: "\(MistakeReport.repository)/blob/main/LICENSE")
+
     static let all: [Credit] = [
-        Credit(title: "Learning words and pictures",
-               detail: "The 1950 pack words, their example sentences, emoji choices and drawings were made for this app with Claude (Anthropic).",
-               license: "MIT licence, © 2026 Oktay Ibis",
-               url: URL(string: "\(MistakeReport.repository)/blob/main/LICENSE")),
         Credit(title: "Dictionary",
-               detail: "About 23,000 words with meanings, forms, pronunciation (IPA) and synonyms, from the Danish entries of English Wiktionary, via kaikki.org.",
-               license: "Wiktionary, CC BY-SA 4.0",
-               url: URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")),
-        Credit(title: "Extra everyday words",
-               detail: "47 words Wiktionary lacks, such as Rejsekort, MitID and pantbon, written for this app.",
-               license: "Danish Vocab, CC BY-SA 4.0",
-               url: URL(string: "https://creativecommons.org/licenses/by-sa/4.0/")),
+               detail: "About 23,000 Danish words with their English meanings, forms, pronunciation (IPA), synonyms and antonyms come from English Wiktionary.",
+               author: "Wiktionary contributors; extracted by kaikki.org with wiktextract (Tatu Ylonen)",
+               source: URL(string: "https://kaikki.org/dictionary/Danish/"),
+               license: "CC BY-SA 4.0",
+               licenseURL: ccBySA,
+               changes: "selected and shortened meanings and forms, merged entries, added frequency ranks and 47 extra words. The resulting dictionary is shared under CC BY-SA 4.0."),
         Credit(title: "Word frequency",
-               detail: "Words are ranked by how often they appear in Danish film and TV subtitles: FrequencyWords by Hermit Dave, built from OpenSubtitles 2018.",
-               license: "FrequencyWords, CC BY-SA 4.0",
-               url: URL(string: "https://github.com/hermitdave/FrequencyWords")),
-        Credit(title: "Sentences",
-               detail: "The practical sentences and one example for every dictionary word were written with Claude (Anthropic): Sonnet for the situations and the 5,000 most frequent words, Haiku for the rest.",
-               license: "Part of Danish Vocab, MIT licence",
-               url: nil),
+               detail: "Dictionary words are ranked by how often they appear in Danish film and TV subtitles.",
+               author: "Hermit Dave (FrequencyWords), from the OpenSubtitles 2018 corpus (OPUS, opensubtitles.org)",
+               source: URL(string: "https://github.com/hermitdave/FrequencyWords"),
+               license: "CC BY-SA 4.0",
+               licenseURL: ccBySA,
+               changes: "only used to sort the dictionary; the list itself is not included."),
+        Credit(title: "Extra everyday words",
+               detail: "47 words Wiktionary lacks, such as Rejsekort, MitID and pantbon.",
+               author: "Danish Vocab, written with Claude (Anthropic)",
+               source: URL(string: "\(MistakeReport.repository)/blob/main/scripts/extra_words.json"),
+               license: "CC BY-SA 4.0",
+               licenseURL: ccBySA),
+        Credit(title: "Learning words, pictures and sentences",
+               detail: "The 1950 pack words, their example sentences and pictures, the 360 practical sentences and an example for every dictionary word. Sentences for the 5,000 most frequent words and the situations were written with Claude Sonnet, the rest with Claude Haiku.",
+               author: "Oktay Ibis, written with Claude (Anthropic)",
+               source: URL(string: MistakeReport.repository),
+               license: "MIT",
+               licenseURL: mit),
         Credit(title: "Pronunciation",
-               detail: "Pack words and their example sentences are read by the native Danish voice \"Søren\", generated with ElevenLabs on a paid plan. Other sentences are read by the Danish voice on your iPhone.",
-               license: "ElevenLabs",
-               url: URL(string: "https://elevenlabs.io")),
+               detail: "Pack words and their example sentences are read by the native Danish voice \"Søren\". Other sentences are read by the Danish voice on your iPhone.",
+               author: "Recorded with ElevenLabs on a paid plan; device voice by Apple",
+               source: URL(string: "https://elevenlabs.io"),
+               license: "ElevenLabs terms of service",
+               licenseURL: URL(string: "https://elevenlabs.io/terms-of-use")),
+        Credit(title: "App",
+               detail: "The app's code, icon and drawings.",
+               author: "Oktay Ibis, written with Claude (Anthropic)",
+               source: URL(string: MistakeReport.repository),
+               license: "MIT",
+               licenseURL: mit),
     ]
 }
 

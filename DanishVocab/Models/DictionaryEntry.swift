@@ -20,6 +20,14 @@ struct DictionaryEntry: Decodable, Hashable {
     /// "app" for everyday words added for the practical sentences (scripts/extra_words.json); nil for Wiktionary.
     var src: String? = nil
 
+    /// The Danish section of the word's page on English Wiktionary, where the entry comes from.
+    var wiktionaryURL: URL? {
+        var components = URLComponents(string: "https://en.wiktionary.org")
+        components?.path = "/wiki/" + w.replacingOccurrences(of: " ", with: "_")
+        components?.fragment = "Danish"
+        return components?.url
+    }
+
     var displayDanish: String {
         switch p {
         case .noun: g.map { "\($0) \(w)" } ?? w
