@@ -130,6 +130,10 @@ Words that Wiktionary lacks go in `scripts/extra_words.json`, in the same format
 swift -O scripts/build_sentences.swift
 ```
 
+### Releasing a new version
+
+Bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`) in `project.yml`, run `xcodegen generate`, and add the release at the top of `Release.all` in `DanishVocab/Views/AboutView.swift`, so it shows under "What's new" on the About screen.
+
 ## How this project was built
 
 This project was built with an **ADLC (AI-Driven Development Life Cycle)** approach. **All of the code was written by Claude Opus 5.5** (Anthropic) in Claude Code, including the word lists, the tests and the app icon. Oktay Ibis set the direction, made the product decisions and reviewed the results.
@@ -142,5 +146,7 @@ The code is [MIT](LICENSE) © 2026 Oktay Ibis.
 
 Data with its own license:
 - `DanishVocab/Data/dictionary.json` is derived from [Wiktionary](https://en.wiktionary.org) and is available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Changes to this file must be shared under the same license.
-- The frequency ranking uses [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (MIT).
+- The frequency ranking uses the word lists of [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (built from OpenSubtitles 2018), available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- `scripts/extra_words.json` and the entries made from it are part of `dictionary.json` and share its CC BY-SA 4.0 licence.
+- The app's About screen (Profile › About) lists these sources and licences too.
 - The recordings in `DanishVocab/Audio` were generated with [ElevenLabs](https://elevenlabs.io) on a paid plan.
