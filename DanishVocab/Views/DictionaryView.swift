@@ -6,37 +6,20 @@ struct DictionaryView: View {
     @State private var query = ""
     @State private var scope: DictionaryScope = .all
 
+    /// Read when the view is shown, so the dictionary loads on first use, not at app launch.
+    private var index: DictionaryLookup { .shared }
     private let repository = WordRepository.shared
 
     private var learnedIds: Set<String> { Set(progress.filter(\.isLearned).map(\.wordId)) }
-
-    private var scopedWords: [Word] {
-        repository.allWords.filter { scope.group == nil || $0.partOfSpeech.group == scope.group }
-    }
-
-    private var results: [Word] { DictionarySearch.search(query, in: scopedWords) }
-
-    /// Alphabetical sections, used when nothing has been typed.
-    private var sections: [(letter: String, words: [Word])] {
-        var sections: [(letter: String, words: [Word])] = []
-        for word in DictionarySearch.sorted(scopedWords) {
-            let letter = DictionarySearch.indexLetter(for: word)
-            if sections.last?.letter == letter {
-                sections[sections.count - 1].words.append(word)
-            } else {
-                sections.append((letter, [word]))
-            }
-        }
-        return sections
-    }
+    private var results: [DictionaryItem] { index.search(query, group: scope.group) }
 
     var body: some View {
         NavigationStack {
             List {
                 if query.isEmpty {
-                    ForEach(sections, id: \.letter) { section in
+                    ForEach(index.sections(group: scope.group), id: \.letter) { section in
                         Section(section.letter) {
-                            ForEach(section.words) { row(for: $0) }
+                            ForEach(section.items) { row(for: $0) }
                         }
                     }
                 } else {
@@ -50,44 +33,142 @@ struct DictionaryView: View {
                 }
             }
             .navigationTitle("Dictionary")
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Danish or English word")
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: "\(index.items.count.formatted()) Danish & English words")
             .searchScopes($scope) {
                 ForEach(DictionaryScope.allCases) { Text($0.title).tag($0) }
             }
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
-            .navigationDestination(for: Word.self) { word in
-                ScrollView { WordDetailView(word: word) }
-                    .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: DictionaryItem.self) { item in
+                switch item {
+                case .word(let word):
+                    ScrollView { WordDetailView(word: word) }
+                        .navigationBarTitleDisplayMode(.inline)
+                case .entry(let entry):
+                    DictionaryEntryView(entry: entry)
+                }
             }
         }
     }
 
-    private func row(for word: Word) -> some View {
-        NavigationLink(value: word) {
+    private func row(for item: DictionaryItem) -> some View {
+        NavigationLink(value: item) {
             HStack(spacing: 12) {
-                WordVisualView(visual: word.visual, size: 40, tint: word.tint)
+                switch item {
+                case .word(let word):
+                    WordVisualView(visual: word.visual, size: 40, tint: word.tint)
+                case .entry:
+                    Image(systemName: "character.book.closed")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, height: 40)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(word.displayDanish).font(.headline)
-                        if learnedIds.contains(word.id) {
+                        Text(item.displayDanish).font(.headline)
+                        if learnedIds.contains(item.id) {
                             Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
                         }
                     }
-                    Text(word.english).font(.subheadline).foregroundStyle(.secondary)
-                    if let hint = word.grammarHint {
-                        Text(hint).font(.caption).foregroundStyle(.tertiary)
+                    Text(item.english).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    if let hint = item.grammarHint {
+                        Text(hint).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
                     }
                 }
                 Spacer()
-                if let pack = repository.pack(forWordId: word.id) {
-                    Text(pack.title)
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.quaternary, in: Capsule())
-                        .foregroundStyle(.secondary)
+                Text(tag(for: item))
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.quaternary, in: Capsule())
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// The pack a word is taught in, or its word type for dictionary-only words.
+    private func tag(for item: DictionaryItem) -> String {
+        if case .word(let word) = item, let pack = repository.pack(forWordId: word.id) { return pack.title }
+        return item.partOfSpeech.singularTitle
+    }
+}
+
+/// A word that is only in the open dictionary: meanings, forms, pronunciation and related words.
+struct DictionaryEntryView: View {
+    let entry: DictionaryEntry
+
+    /// Read when the view is shown, so the dictionary loads on first use, not at app launch.
+    private var index: DictionaryLookup { .shared }
+
+    var body: some View {
+        List {
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        Text(entry.displayDanish).font(.largeTitle.bold()).minimumScaleFactor(0.6)
+                        SpeakButton(text: entry.displayDanish)
+                    }
+                    HStack(spacing: 8) {
+                        Text(entry.p.singularTitle)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(.tint.opacity(0.12), in: Capsule())
+                        if let gender = entry.g { Text("\(gender)-word").font(.caption).foregroundStyle(.secondary) }
+                        if let ipa = entry.ipa { Text(ipa).font(.callout.monospaced()).foregroundStyle(.secondary) }
+                    }
                 }
+                .padding(.vertical, 6)
+            }
+
+            Section("Meaning") {
+                ForEach(Array(entry.m.enumerated()), id: \.offset) { number, meaning in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(number + 1).").foregroundStyle(.secondary).monospacedDigit()
+                        Text(meaning)
+                    }
+                }
+            }
+
+            if let forms = entry.grammarHint {
+                Section("Forms") {
+                    ForEach(forms.components(separatedBy: " · "), id: \.self) { line in
+                        let parts = line.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+                        HStack {
+                            Text(parts.first ?? "").foregroundStyle(.secondary)
+                            Spacer()
+                            Text(parts.last ?? "").bold()
+                        }
+                    }
+                }
+            }
+
+            let related = index.related(to: .entry(entry))
+            relatedSection("Synonyms", words: related.synonyms, icon: "equal.circle.fill", color: .green)
+            relatedSection("Antonyms", words: related.antonyms, icon: "arrow.left.arrow.right.circle.fill", color: .orange)
+
+            Section {
+                Text("Source: Wiktionary, CC BY-SA 4.0").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func relatedSection(_ title: String, words: [String], icon: String, color: Color) -> some View {
+        if !words.isEmpty {
+            Section {
+                ForEach(words, id: \.self) { word in
+                    if let item = index.item(for: word, preferring: entry.p) {
+                        NavigationLink(value: item) {
+                            Label(item.displayDanish, systemImage: icon).foregroundStyle(color, .primary)
+                        }
+                    } else {
+                        Label(word, systemImage: icon).foregroundStyle(color, .primary)
+                    }
+                }
+            } header: {
+                Text(title)
             }
         }
     }

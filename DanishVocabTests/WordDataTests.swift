@@ -55,7 +55,7 @@ struct WordDataTests {
                 #expect(word.present != nil && word.past != nil, "\(word.danish) needs present and past")
             case .adjective:
                 #expect(word.neuter != nil && word.plural != nil, "\(word.danish) needs neuter and plural forms")
-            case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase:
+            case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase, .interjection, .proverb:
                 #expect(word.article == nil && word.plural == nil, "\(word.danish) is a small word and takes no en/et or plural")
             }
         }
@@ -116,9 +116,10 @@ struct WordDataTests {
 }
 
 struct DictionarySearchTests {
-    let words = WordRepository(bundle: Bundle(for: WordRepository.self)).allWords
+    let lookup = DictionaryLookup(bundle: Bundle(for: WordRepository.self))
 
-    func top(_ query: String) -> String? { DictionarySearch.search(query, in: words).first?.danish }
+    func top(_ query: String) -> String? { lookup.search(query).first?.danish }
+    func results(_ query: String) -> [String] { lookup.search(query).map(\.danish) }
 
     @Test func findsDanishWithAndWithoutSpecialLetters() {
         #expect(top("æble") == "æble")
@@ -135,33 +136,60 @@ struct DictionarySearchTests {
     }
 
     @Test func danishWinsOverEnglishFalseFriends() {
-        // "fire" is Danish for four; English matches (ild, at fyre) come after it.
-        let results = DictionarySearch.search("fire", in: words).map(\.danish)
-        #expect(results.first == "fire")
-        #expect(results.prefix(3).contains("ild"))
+        // "fire" is Danish for four (and a verb, to lower); English matches like "ild" come after.
+        #expect(results("fire").first == "fire")
+        #expect(results("fire").prefix(5).contains("ild"))
     }
 
     @Test func findsEnglishMeanings() {
         #expect(top("eat") == "at spise")
-        #expect(top("dog") == "hund")
+        // "dog" is also a Danish word (however), which comes first; "hund" follows.
+        #expect(results("dog").prefix(3).contains("hund"))
         #expect(top("yellow") == "gul")
-        // "red" is also the Danish past tense of "at ride", which ranks first; the colour follows.
-        #expect(DictionarySearch.search("red", in: words).prefix(2).map(\.danish) == ["at ride", "rød"])
+        // "red" is also the Danish past tense of "at ride", which ranks first; the colour follows soon after.
+        #expect(top("red") == "at ride")
+        #expect(results("red").prefix(5).contains("rød"))
     }
 
     @Test func exactMatchesComeFirst() {
         // "is" is a Danish word (ice cream) and must beat English words containing "is".
         #expect(top("is") == "is")
-        let results = DictionarySearch.search("hus", in: words).map(\.danish)
-        #expect(results.first == "hus")
+        #expect(top("hus") == "hus")
     }
 
-    @Test func emptyQueryListsEverythingAlphabetically() {
-        let all = DictionarySearch.search("", in: words)
-        #expect(all.count == words.count)
-        // Danish order puts æ, ø, å after z.
-        let letters = all.map { DictionarySearch.indexLetter(for: $0) }
+    @Test func packWordsAreNotListedTwice() {
+        let ids = lookup.items.map(\.id)
+        #expect(Set(ids).count == ids.count)
+        // "hus" is a pack word, so the dictionary entry for it is hidden behind it.
+        let hus = lookup.items.filter { $0.lemma == "hus" && $0.partOfSpeech == .noun }
+        #expect(hus.count == 1)
+        if case .word = hus.first {} else { Issue.record("hus should be the pack word") }
+    }
+
+    @Test func dictionaryAddsThousandsOfWords() {
+        #expect(lookup.items.count > 20_000)
+        for item in lookup.items {
+            if case .entry(let entry) = item { #expect(!entry.m.isEmpty, "\(entry.w) has no meaning") }
+        }
+        #expect(top("sommerhus") == "sommerhus")
+        #expect(top("flødebolle") == "flødebolle")
+    }
+
+    @Test func packWordsGetSynonymsAndAntonyms() {
+        let glad = WordRepository(bundle: Bundle(for: WordRepository.self)).allWords.first { $0.danish == "glad" }!
+        let related = lookup.related(to: glad)
+        #expect(related.synonyms.contains("fornøjet"))
+        #expect(related.antonyms.contains("trist"))
+        // Wiktionary lists the pair under "glad" only; it should show from the other side too.
+        guard case .entry(let fornøjet)? = lookup.item(for: "fornøjet", preferring: .adjective) else {
+            Issue.record("fornøjet should be a dictionary entry"); return
+        }
+        #expect(lookup.related(to: .entry(fornøjet)).synonyms.contains("glad"))
+    }
+
+    @Test func browsingIsAlphabeticalWithÆØÅLast() {
+        let letters = lookup.sections(group: nil).map(\.letter).filter { $0 != "#" }
         #expect(letters.first == "A")
-        #expect(letters.last == "Å")
+        #expect(letters.suffix(3) == ["Æ", "Ø", "Å"])
     }
 }

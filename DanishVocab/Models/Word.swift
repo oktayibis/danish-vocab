@@ -11,6 +11,8 @@ enum PartOfSpeech: String, Codable, CaseIterable, Identifiable, Sendable {
     case number
     case question
     case phrase
+    case interjection
+    case proverb
 
     var id: String { rawValue }
 
@@ -26,6 +28,26 @@ enum PartOfSpeech: String, Codable, CaseIterable, Identifiable, Sendable {
         case .number: "Numbers"
         case .question: "Question words"
         case .phrase: "Phrases"
+        case .interjection: "Interjections"
+        case .proverb: "Proverbs"
+        }
+    }
+
+    /// "noun", "verb", … for tags on dictionary rows.
+    var singularTitle: String {
+        switch self {
+        case .noun: "noun"
+        case .verb: "verb"
+        case .adjective: "adjective"
+        case .adverb: "adverb"
+        case .preposition: "preposition"
+        case .pronoun: "pronoun"
+        case .conjunction: "conjunction"
+        case .number: "number"
+        case .question: "question word"
+        case .phrase: "phrase"
+        case .interjection: "interjection"
+        case .proverb: "proverb"
         }
     }
 
@@ -34,7 +56,7 @@ enum PartOfSpeech: String, Codable, CaseIterable, Identifiable, Sendable {
         case .noun: .nouns
         case .verb: .verbs
         case .adjective: .adjectives
-        case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase: .smallWords
+        case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase, .interjection, .proverb: .smallWords
         }
     }
 }
@@ -139,7 +161,7 @@ struct Word: Codable, Identifiable, Hashable, Sendable {
             if let present, let past { "present: \(present) · past: \(past)" } else { nil }
         case .adjective:
             if let neuter, let plural { "et-word: \(neuter) · plural: \(plural)" } else { nil }
-        case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase:
+        case .adverb, .preposition, .pronoun, .conjunction, .number, .question, .phrase, .interjection, .proverb:
             nil
         }
         let parts = [forms, note].compactMap { $0 }

@@ -157,9 +157,28 @@ struct WordDetailView: View {
             }
             .multilineTextAlignment(.center)
             .padding()
+            let related = DictionaryLookup.shared.related(to: word)
+            RelatedWordsRow(title: "Synonyms", words: related.synonyms, color: .green)
+            RelatedWordsRow(title: "Antonyms", words: related.antonyms, color: .orange)
             Spacer()
         }
         .padding()
         .onAppear { SpeechService.shared.speak(word) }
+    }
+}
+
+/// "Synonyms: fornøjet, lykkelig" under a word, hidden when there are none.
+private struct RelatedWordsRow: View {
+    let title: String
+    let words: [String]
+    let color: Color
+
+    var body: some View {
+        if !words.isEmpty {
+            VStack(spacing: 4) {
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(color)
+                Text(words.joined(separator: " · ")).font(.callout).multilineTextAlignment(.center)
+            }
+        }
     }
 }
