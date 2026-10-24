@@ -82,8 +82,10 @@ struct WordDataTests {
 
     @Test func recordedAudioBelongsToWords() {
         let bundle = Bundle(for: WordRepository.self)
-        let ids = Set(repository.allWords.map(\.id))
-        // Word clips are <id>.mp3, example sentence clips <id>-ex.mp3.
+        let sentences = SentenceStore(bundle: bundle)
+        let situationIds = sentences.categories.flatMap { sentences.sentences(in: $0.id).map(\.id) }
+        let ids = Set(repository.allWords.map(\.id) + situationIds)
+        // Word clips are <id>.mp3, example sentence clips <id>-ex.mp3, situation sentences <sentence id>.mp3.
         let clips = (bundle.urls(forResourcesWithExtension: "mp3", subdirectory: nil) ?? [])
             .map { $0.deletingPathExtension().lastPathComponent }
             .map { $0.hasSuffix("-ex") ? String($0.dropLast(3)) : $0 }
@@ -191,5 +193,45 @@ struct DictionarySearchTests {
         let letters = lookup.sections(group: nil).map(\.letter).filter { $0 != "#" }
         #expect(letters.first == "A")
         #expect(letters.suffix(3) == ["Æ", "Ø", "Å"])
+    }
+}
+
+struct SentenceTests {
+    let store = SentenceStore(bundle: Bundle(for: WordRepository.self))
+
+    @Test func everySituationHasThirtySentencesToSayAndHear() {
+        #expect(store.categories.count == 12)
+        for category in store.categories {
+            let sentences = store.sentences(in: category.id)
+            #expect(sentences.count == 30, "\(category.id) has \(sentences.count) sentences")
+            #expect(sentences.contains { $0.isHeard } && sentences.contains { !$0.isHeard },
+                    "\(category.id) needs sentences to say and to hear")
+            for sentence in sentences {
+                #expect(!sentence.da.isEmpty && !sentence.en.isEmpty, "\(sentence.id) needs Danish and English")
+                #expect(!sentence.k.isEmpty, "\(sentence.id) is not linked to any word")
+            }
+        }
+    }
+
+    @Test func dictionaryWordsHaveTheirOwnExample() {
+        #expect(store.count > 20_000)
+        #expect(store.example(for: "venteliste", partOfSpeech: .noun)?.da.lowercased().contains("venteliste") == true)
+        #expect(store.example(for: "glohed", partOfSpeech: .adjective) != nil)
+    }
+
+    @Test func wordsListTheSentencesTheyAppearIn() {
+        // Practical sentences come first, and inflected forms count: "spiser" is "at spise".
+        let kaffe = store.sentences(containing: "kaffe", partOfSpeech: .noun)
+        #expect(kaffe.first?.isSituation == true)
+        #expect(kaffe.allSatisfy { $0.da.lowercased().contains("kaffe") })
+        let spise = store.sentences(containing: "spise", partOfSpeech: .verb, limit: 50)
+        #expect(spise.contains { $0.da.contains("spiser") || $0.da.contains("spiste") })
+    }
+
+    @Test func mistakeReportsOpenAPrefilledIssue() {
+        let sentence = store.sentences(in: "cafe")[0]
+        let url = MistakeReport.url(for: sentence).absoluteString
+        #expect(url.hasPrefix("https://github.com/oktayibis/danish-vocab/issues/new?"))
+        #expect(url.contains(sentence.id))
     }
 }

@@ -1,8 +1,12 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking // URLSession on Linux
+#endif
 
 // Records pronunciations with the ElevenLabs API and saves them in DanishVocab/Audio:
 //   <word id>.mp3      the word itself ("et æble", "at spise")
 //   <word id>-ex.mp3   its example sentence (with --examples)
+//   <sentence id>.mp3  a practical sentence from Data/sentences.json, e.g. cafe.01.mp3 (with --situations)
 // The app plays these clips and falls back to the device voice when one is missing.
 //
 // scripts/audio_manifest.json remembers which text each clip was made from, so a clip is re-recorded
@@ -16,6 +20,7 @@ import Foundation
 //   swift scripts/generate_audio.swift --pack beginner
 //   swift scripts/generate_audio.swift                       # all words
 //   swift scripts/generate_audio.swift --examples            # all example sentences
+//   swift scripts/generate_audio.swift --situations [--category cafe]   # practical sentences
 //
 // Environment:
 //   ELEVENLABS_API_KEY   required, or ELEVENLABS_API_KEY=... in ~/.config/elevenlabs-mcp/.env
@@ -40,6 +45,10 @@ struct Entry: Decodable {
         if partOfSpeech == "noun", let article, plural != nil { "\(article) \(danish)" } else { danish }
     }
 }
+
+/// A sentence from Data/sentences.json; only the situation ones (with a category) are recorded.
+struct PoolSentence: Decodable { let id: String; let da: String; let c: String? }
+struct Pool: Decodable { let sentences: [PoolSentence] }
 
 /// One clip to record.
 struct Clip {
@@ -108,8 +117,19 @@ for pack in selectedPacks {
 }
 
 let recordExamples = arguments.contains("--examples")
-let clips = entries.map { entry in
-    recordExamples ? Clip(name: "\(entry.id)-ex", text: entry.exampleDa) : Clip(name: entry.id, text: entry.displayDanish)
+let recordSituations = arguments.contains("--situations")
+let clips: [Clip]
+if recordSituations {
+    let pool = try JSONDecoder().decode(Pool.self, from: Data(contentsOf: dataDir.appendingPathComponent("sentences.json")))
+    let category = option("--category")
+    clips = pool.sentences
+        .filter { $0.c != nil && (category == nil || $0.c == category) }
+        .map { Clip(name: $0.id, text: $0.da) }
+    guard !clips.isEmpty else { fail("no situation sentences\(category.map { " in \($0)" } ?? "")") }
+} else {
+    clips = entries.map { entry in
+        recordExamples ? Clip(name: "\(entry.id)-ex", text: entry.exampleDa) : Clip(name: entry.id, text: entry.displayDanish)
+    }
 }
 
 try FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
@@ -133,7 +153,7 @@ var todo = missing
 if let limit = option("--limit").flatMap(Int.init) { todo = Array(todo.prefix(limit)) }
 
 let characters = todo.reduce(0) { $0 + $1.text.count }
-let kind = recordExamples ? "example sentences" : "words"
+let kind = recordSituations ? "situation sentences" : recordExamples ? "example sentences" : "words"
 print("\(clips.count) \(kind) selected, \(clips.count - missing.count) up to date, \(todo.count) to record (\(characters) characters).")
 if arguments.contains("--dry-run") || todo.isEmpty { exit(0) }
 

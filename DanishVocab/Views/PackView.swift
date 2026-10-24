@@ -47,7 +47,9 @@ struct PackView: View {
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle(pack.title)
-        .sheet(item: $selectedWord) { WordDetailView(word: $0).presentationDetents([.medium, .large]) }
+        .sheet(item: $selectedWord) { word in
+            ScrollView { WordDetailView(word: word) }.presentationDetents([.medium, .large])
+        }
         .practiceSession($practice)
     }
 
@@ -160,10 +162,35 @@ struct WordDetailView: View {
             let related = DictionaryLookup.shared.related(to: word)
             RelatedWordsRow(title: "Synonyms", words: related.synonyms, color: .green)
             RelatedWordsRow(title: "Antonyms", words: related.antonyms, color: .orange)
+            WordSentences(lemma: DictionaryItem.word(word).lemma, partOfSpeech: word.partOfSpeech)
+            Link(destination: MistakeReport.url(forWord: word.displayDanish, english: word.english, id: word.id)) {
+                Label("Report a mistake", systemImage: "exclamationmark.bubble")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
             Spacer()
         }
         .padding()
         .onAppear { SpeechService.shared.speak(word) }
+    }
+}
+
+/// "In these sentences": a few sentences from the pool that use the word, hidden when there are none.
+private struct WordSentences: View {
+    let lemma: String
+    let partOfSpeech: PartOfSpeech
+
+    var body: some View {
+        let sentences = SentenceStore.shared.sentences(containing: lemma, partOfSpeech: partOfSpeech, limit: 5)
+        if !sentences.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("In these sentences").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(sentences) { SentenceRow(sentence: $0) }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        }
     }
 }
 

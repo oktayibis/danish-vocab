@@ -17,6 +17,8 @@ struct DictionaryEntry: Decodable, Hashable {
     let ant: [String]?
     /// Frequency rank: 1 is the most used word. Nil for rare words.
     let r: Int?
+    /// "app" for everyday words added for the practical sentences (scripts/extra_words.json); nil for Wiktionary.
+    var src: String? = nil
 
     var displayDanish: String {
         switch p {

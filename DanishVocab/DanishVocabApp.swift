@@ -16,6 +16,8 @@ struct RootView: View {
         TabView {
             HomeView()
                 .tabItem { Label("Learn", systemImage: "book.fill") }
+            PhrasesView()
+                .tabItem { Label("Phrases", systemImage: "text.bubble.fill") }
             DictionaryView()
                 .tabItem { Label("Dictionary", systemImage: "character.book.closed.fill") }
             BadgesView()

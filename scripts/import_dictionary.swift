@@ -4,6 +4,7 @@ import Foundation
 //   - Danish entries of English Wiktionary, as extracted by kaikki.org (CC BY-SA 4.0 / GFDL)
 //     https://kaikki.org/dictionary/Danish/kaikki.org-dictionary-Danish.jsonl
 //   - FrequencyWords (OpenSubtitles 2018) Danish list, used only to rank entries by frequency
+//   - scripts/extra_words.json: everyday words Wiktionary lacks (Rejsekort, MitID, pantbon…), written for the app
 //     https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/da/da_50k.txt
 //
 // Run from the repository root:
@@ -36,7 +37,7 @@ struct KEntry: Decodable {
 
 // MARK: - Output (short keys keep the bundled file small)
 
-struct OutEntry: Encodable {
+struct OutEntry: Codable {
     var w: String                 // word
     var p: String                 // part of speech, same names as the app's PartOfSpeech
     var g: String?                // "en" / "et" for nouns
@@ -46,6 +47,7 @@ struct OutEntry: Encodable {
     var syn: [String]?
     var ant: [String]?
     var r: Int?                   // frequency rank (1 = most frequent)
+    var src: String?              // "app" for words from scripts/extra_words.json, nil for Wiktionary
 }
 
 let posMap = [
@@ -189,6 +191,22 @@ while true {
 }
 if !buffer.isEmpty { handle(line: buffer) }
 
+// MARK: - Extra words
+
+let extraWords = try JSONDecoder().decode([OutEntry].self, from: Data(contentsOf: URL(fileURLWithPath: "scripts/extra_words.json")))
+var extraCount = 0
+for var entry in extraWords {
+    let key = "\(entry.w)|\(entry.p)"
+    guard merged[key] == nil else { continue }   // Wiktionary has it by now
+    entry.src = "app"
+    order.append(key)
+    merged[key] = entry
+    extraCount += 1
+    for form in (entry.f ?? [:]).values where !form.contains(" ") {
+        tableForm[form.lowercased()] = tableForm[form.lowercased()] ?? entry.w.lowercased()
+    }
+}
+
 // MARK: - Rank by frequency
 
 let lemmaKeys = Dictionary(grouping: order, by: { $0.split(separator: "|")[0].lowercased() })
@@ -246,7 +264,7 @@ let data = try encoder.encode(entries)
 try data.write(to: output)
 
 let counts = Dictionary(grouping: entries, by: \.p).mapValues(\.count).sorted { $0.value > $1.value }
-print("\(entries.count) entries (\(rankedKeys.count) ranked by frequency), \(skipped) lines skipped")
+print("\(entries.count) entries (\(rankedKeys.count) ranked by frequency, \(extraCount) extra words), \(skipped) lines skipped")
 print("by part of speech: \(counts.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
 print("with synonyms: \(entries.filter { $0.syn != nil }.count), antonyms: \(entries.filter { $0.ant != nil }.count)")
 print("wrote \(output.path) (\(data.count / 1024) KB)")
