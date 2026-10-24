@@ -15,7 +15,7 @@ Danish Vocab is built on open data and a few services. This file credits them an
 
 - **What:** the Danish 50,000-word frequency list, used only to rank dictionary entries. The list itself is not included in the app.
 - **Author:** [Hermit Dave, FrequencyWords](https://github.com/hermitdave/FrequencyWords) (content CC BY-SA 4.0, code MIT).
-- **Underlying data:** the [OpenSubtitles 2018](https://opus.nlpl.eu/OpenSubtitles2018.php) corpus from [OPUS](https://opus.nlpl.eu) (P. Lison and J. Tiedemann, *OpenSubtitles2016: Extracting Large Parallel Corpora from Movie and TV Subtitles*, LREC 2016), built from subtitles on [opensubtitles.org](https://www.opensubtitles.org).
+- **Underlying data:** the [OpenSubtitles 2018](https://opus.nlpl.eu/legacy/OpenSubtitles-v2018.php) corpus from [OPUS](https://opus.nlpl.eu) (P. Lison and J. Tiedemann, *OpenSubtitles2016: Extracting Large Parallel Corpora from Movie and TV Subtitles*, LREC 2016), built from subtitles on [opensubtitles.org](https://www.opensubtitles.org).
 - **Licence:** [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
 ## Extra everyday words

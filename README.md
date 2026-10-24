@@ -146,7 +146,7 @@ The code is [MIT](LICENSE) © 2026 Oktay Ibis.
 
 Data with its own license (full credits, citations and changes in [ATTRIBUTION.md](ATTRIBUTION.md)):
 - `DanishVocab/Data/dictionary.json` is derived from [Wiktionary](https://en.wiktionary.org) (by Wiktionary contributors, extracted by [kaikki.org](https://kaikki.org) with wiktextract by Tatu Ylonen) and is available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Changes to this file must be shared under the same license.
-- The frequency ranking uses the word lists of [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (built from OpenSubtitles 2018), available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- The frequency ranking uses the word lists of [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (built from the [OpenSubtitles 2018](https://opus.nlpl.eu/legacy/OpenSubtitles-v2018.php) corpus of subtitles from [opensubtitles.org](https://www.opensubtitles.org)), available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - `scripts/extra_words.json` and the entries made from it are part of `dictionary.json` and share its CC BY-SA 4.0 licence.
 - The app's About screen (Profile › About) lists these sources and licences too.
 - The recordings in `DanishVocab/Audio` were generated with [ElevenLabs](https://elevenlabs.io) on a paid plan.
