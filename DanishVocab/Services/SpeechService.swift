@@ -1,7 +1,7 @@
 import AVFoundation
 
-/// Speaks Danish: recorded clips when they are bundled (Audio/<word id>.mp3 and <word id>-ex.mp3,
-/// made with scripts/generate_audio.swift), otherwise the best da-DK voice installed on the device.
+/// Speaks Danish: recorded clips when they are bundled (Audio/<word id>.mp3, <word id>-ex.mp3 and
+/// <sentence id>.mp3, made with scripts/generate_audio.swift), otherwise the best da-DK voice installed on the device.
 final class SpeechService: NSObject {
     static let shared = SpeechService()
 
@@ -27,6 +27,11 @@ final class SpeechService: NSObject {
     /// Reads the word's example sentence, recorded (<word id>-ex.mp3) or with the device voice.
     func speakExample(of word: Word) {
         playClip(named: "\(word.id)-ex", fallback: word.exampleDa)
+    }
+
+    /// Reads a sentence from the pool, recorded (<sentence id>.mp3, e.g. cafe.01.mp3) or with the device voice.
+    func speak(_ sentence: Sentence) {
+        playClip(named: sentence.id, fallback: sentence.da)
     }
 
     private func playClip(named name: String, fallback text: String) {

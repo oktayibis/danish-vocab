@@ -143,12 +143,29 @@ struct DictionaryEntryView: View {
                 }
             }
 
+            let sentences = SentenceStore.shared.sentences(containing: entry.w, partOfSpeech: entry.p, limit: 10)
+            if !sentences.isEmpty {
+                Section(sentences.count == 1 ? "Example" : "Examples") {
+                    ForEach(sentences) { SentenceRow(sentence: $0) }
+                }
+            }
+
             let related = index.related(to: .entry(entry))
             relatedSection("Synonyms", words: related.synonyms, icon: "equal.circle.fill", color: .green)
             relatedSection("Antonyms", words: related.antonyms, icon: "arrow.left.arrow.right.circle.fill", color: .orange)
 
             Section {
-                Text("Source: Wiktionary, CC BY-SA 4.0").font(.caption).foregroundStyle(.secondary)
+                if entry.src == "app" {
+                    Text("Source: Danish Vocab, CC BY-SA 4.0").font(.caption).foregroundStyle(.secondary)
+                } else if let page = entry.wiktionaryURL {
+                    // CC BY-SA: credit the authors and link to the original entry.
+                    Link("Source: Wiktionary contributors, CC BY-SA 4.0", destination: page).font(.caption)
+                }
+                Link(destination: MistakeReport.url(forWord: entry.displayDanish, english: entry.m.first ?? "",
+                                                    id: "dict.\(entry.w).\(entry.p.rawValue)")) {
+                    Label("Report a mistake", systemImage: "exclamationmark.bubble")
+                }
+                .font(.caption)
             }
         }
         .navigationBarTitleDisplayMode(.inline)

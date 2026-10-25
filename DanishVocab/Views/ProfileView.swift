@@ -31,6 +31,13 @@ struct ProfileView: View {
                     row("Perfect quizzes", value: "\(player?.perfectRounds ?? 0)", icon: "star.circle.fill", color: .orange)
                 }
                 Section {
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About, sources & licences", systemImage: "info.circle")
+                    }
+                }
+                Section {
                     Button("Reset all progress", role: .destructive) { confirmReset = true }
                 }
             }

@@ -4,6 +4,7 @@ import Foundation
 //   - Danish entries of English Wiktionary, as extracted by kaikki.org (CC BY-SA 4.0 / GFDL)
 //     https://kaikki.org/dictionary/Danish/kaikki.org-dictionary-Danish.jsonl
 //   - FrequencyWords (OpenSubtitles 2018) Danish list, used only to rank entries by frequency
+//   - scripts/extra_words.json: everyday words Wiktionary lacks (Rejsekort, MitID, pantbon…), written for the app
 //     https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/da/da_50k.txt
 //
 // Run from the repository root:
@@ -36,7 +37,7 @@ struct KEntry: Decodable {
 
 // MARK: - Output (short keys keep the bundled file small)
 
-struct OutEntry: Encodable {
+struct OutEntry: Codable {
     var w: String                 // word
     var p: String                 // part of speech, same names as the app's PartOfSpeech
     var g: String?                // "en" / "et" for nouns
@@ -46,6 +47,7 @@ struct OutEntry: Encodable {
     var syn: [String]?
     var ant: [String]?
     var r: Int?                   // frequency rank (1 = most frequent)
+    var src: String?              // "app" for words from scripts/extra_words.json, nil for Wiktionary
 }
 
 let posMap = [
@@ -78,7 +80,9 @@ func inflections(pos: String, forms: [KForm], word: String) -> [String: String]?
     case "verb":
         result["present"] = pick(forms, has: ["present"], not: ["passive", "participle"])
         result["past"] = pick(forms, has: ["past"], not: ["passive", "participle"])
-        result["perfect"] = pick(forms, has: ["perfect"]) ?? pick(forms, has: ["participle", "past"])
+        // Some tables list the bare auxiliary ("er", "har") as the perfect: use the participle then.
+        let perfect = forms.filter { !["er", "har"].contains($0.form) }
+        result["perfect"] = pick(perfect, has: ["perfect"]) ?? pick(perfect, has: ["participle", "past"])
         result["imperative"] = pick(forms, has: ["imperative"], not: ["passive"])
     case "adjective":
         result["neuter"] = pick(forms, has: ["neuter"], not: ["error-unrecognized-form"])
@@ -91,6 +95,12 @@ func inflections(pos: String, forms: [KForm], word: String) -> [String: String]?
     // Keep forms equal to the word only where that is itself informative (glad → glad, et hus → huse).
     result = result.filter { !$0.value.isEmpty && ($0.value != word || ["plural", "neuter"].contains($0.key)) }
     return result.isEmpty ? nil : result
+}
+
+/// First occurrence of each string, in order (NSOrderedSet does not dedupe reliably on Linux).
+func unique(_ items: [String]) -> [String] {
+    var seen = Set<String>()
+    return items.filter { seen.insert($0).inserted }
 }
 
 func gender(_ entry: KEntry, senses: [KSense]) -> String? {
@@ -114,7 +124,8 @@ func clean(_ gloss: String) -> String? {
 
 var merged: [String: OutEntry] = [:]          // "word|pos" → entry
 var order: [String] = []
-var formToLemma: [String: String] = [:]       // lowercased form → lowercased lemma
+var formOf: [String: String] = [:]            // lowercased form → lowercased lemma, from Wiktionary's "form of" entries
+var tableForm: [String: String] = [:]         // lowercased form → lowercased lemma, from inflection tables
 var skipped = 0
 
 guard let reader = FileHandle(forReadingAtPath: wiktionaryPath) else { fatalError("cannot open \(wiktionaryPath)") }
@@ -126,7 +137,7 @@ func handle(line: Data) {
     // Inflected forms point at their lemma: useful for ranking, not as entries of their own.
     for sense in senses {
         for target in (sense.form_of ?? []) + (sense.alt_of ?? []) {
-            if let lemma = target.word { formToLemma[entry.word.lowercased()] = formToLemma[entry.word.lowercased()] ?? lemma.lowercased() }
+            if let lemma = target.word { formOf[entry.word.lowercased()] = formOf[entry.word.lowercased()] ?? lemma.lowercased() }
         }
     }
     guard let pos = posMap[entry.pos] else { return }
@@ -140,8 +151,10 @@ func handle(line: Data) {
     guard !meanings.isEmpty else { return }
     let forms = entry.forms ?? []
     for form in forms where !tags(form).contains("table-tags") && !tags(form).contains("inflection-template") {
+        // Bare auxiliaries ("er", "har") and multi-word forms say nothing about the lemma.
         let key = form.form.lowercased()
-        if formToLemma[key] == nil { formToLemma[key] = entry.word.lowercased() }
+        guard !key.contains(" "), !["er", "har"].contains(key), key != entry.word.lowercased() else { continue }
+        if tableForm[key] == nil { tableForm[key] = entry.word.lowercased() }
     }
     let synonyms = ((entry.synonyms ?? []) + real.flatMap { $0.synonyms ?? [] }).compactMap(\.word)
     let antonyms = ((entry.antonyms ?? []) + real.flatMap { $0.antonyms ?? [] }).compactMap(\.word)
@@ -149,7 +162,7 @@ func handle(line: Data) {
     let key = "\(entry.word)|\(pos)"
     if var existing = merged[key] {
         // Same word and part of speech under another etymology: add its meanings.
-        existing.m = Array(NSOrderedSet(array: existing.m + meanings)) as! [String]
+        existing.m = unique(existing.m + meanings)
         existing.syn = (existing.syn ?? []) + synonyms
         existing.ant = (existing.ant ?? []) + antonyms
         merged[key] = existing
@@ -178,29 +191,60 @@ while true {
 }
 if !buffer.isEmpty { handle(line: buffer) }
 
+// MARK: - Extra words
+
+let extraWords = try JSONDecoder().decode([OutEntry].self, from: Data(contentsOf: URL(fileURLWithPath: "scripts/extra_words.json")))
+var extraCount = 0
+for var entry in extraWords {
+    let key = "\(entry.w)|\(entry.p)"
+    guard merged[key] == nil else { continue }   // Wiktionary has it by now
+    entry.src = "app"
+    order.append(key)
+    merged[key] = entry
+    extraCount += 1
+    for form in (entry.f ?? [:]).values where !form.contains(" ") {
+        tableForm[form.lowercased()] = tableForm[form.lowercased()] ?? entry.w.lowercased()
+    }
+}
+
 // MARK: - Rank by frequency
 
 let lemmaKeys = Dictionary(grouping: order, by: { $0.split(separator: "|")[0].lowercased() })
 var rank = 0
-var ranked = Set<String>()
+var rankedKeys = Set<String>()
+var shadowed: [String] = []                   // nouns spelled like a form of another word, ranked last
+func rankKeys(_ keys: [String]) {
+    let fresh = keys.filter { !rankedKeys.contains($0) }
+    guard !fresh.isEmpty else { return }
+    rank += 1
+    for key in fresh { merged[key]?.r = rank; rankedKeys.insert(key) }
+}
 for line in try String(contentsOfFile: frequencyPath, encoding: .utf8).split(separator: "\n") {
     guard let form = line.split(separator: " ").first.map({ String($0).lowercased() }) else { continue }
-    let lemma = lemmaKeys[form] != nil ? form : formToLemma[form]
-    guard let lemma, let keys = lemmaKeys[lemma], !ranked.contains(lemma) else { continue }
-    ranked.insert(lemma)
-    rank += 1
-    for key in keys { merged[key]?.r = rank }
+    if let base = formOf[form] ?? tableForm[form], base != form, let baseKeys = lemmaKeys[base] {
+        // "galt" is mostly gal's neuter, not the noun (a hog): credit gal, keep the noun for later.
+        // Pronouns and the like ("det", "mig") are forms too, but common in their own right.
+        let own = lemmaKeys[form] ?? []
+        let isShadowed = { (key: String) in key.hasSuffix("|noun") || key.hasSuffix("|verb") }
+        shadowed += own.filter(isShadowed)
+        rankKeys(baseKeys + own.filter { !isShadowed($0) })
+    } else if let keys = lemmaKeys[form] {
+        rankKeys(keys)
+    } else if let lemma = tableForm[form], let keys = lemmaKeys[lemma] {
+        rankKeys(keys)
+    }
 }
+for key in shadowed { rankKeys([key]) }
 
 // MARK: - Write
 
 func tidy(_ words: [String]?, excluding word: String) -> [String]? {
-    let list = (Array(NSOrderedSet(array: words ?? [])) as! [String]).filter { $0 != word && !$0.isEmpty }
+    let list = unique(words ?? []).filter { $0 != word && !$0.isEmpty }
     return list.isEmpty ? nil : Array(list.prefix(8))
 }
 var entries = order.compactMap { merged[$0] }
 for i in entries.indices {
-    entries[i].m = Array((Array(NSOrderedSet(array: entries[i].m)) as! [String]).prefix(6))
+    entries[i].m = Array(unique(entries[i].m).prefix(6))
     entries[i].syn = tidy(entries[i].syn, excluding: entries[i].w)
     entries[i].ant = tidy(entries[i].ant, excluding: entries[i].w)
 }
@@ -220,7 +264,7 @@ let data = try encoder.encode(entries)
 try data.write(to: output)
 
 let counts = Dictionary(grouping: entries, by: \.p).mapValues(\.count).sorted { $0.value > $1.value }
-print("\(entries.count) entries (\(rank) ranked by frequency), \(skipped) lines skipped")
+print("\(entries.count) entries (\(rankedKeys.count) ranked by frequency, \(extraCount) extra words), \(skipped) lines skipped")
 print("by part of speech: \(counts.map { "\($0.key) \($0.value)" }.joined(separator: ", "))")
 print("with synonyms: \(entries.filter { $0.syn != nil }.count), antonyms: \(entries.filter { $0.ant != nil }.count)")
 print("wrote \(output.path) (\(data.count / 1024) KB)")
